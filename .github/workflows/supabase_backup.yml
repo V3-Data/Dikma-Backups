@@ -1,9 +1,9 @@
-name: Supabase Daily Backup to SharePoint
+name: Supabase Full Backup to SharePoint
 
 on:
   schedule:
     - cron: '0 3 * * *' # Todo dia às 03:00 UTC (00:00 Horário de Brasília)
-  workflow_dispatch: # Permite rodar manualmente pela interface do GitHub
+  workflow_dispatch:
 
 jobs:
   backup-and-upload:
@@ -23,7 +23,6 @@ jobs:
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y curl ca-certificates
-          # Adicionar repositório oficial do PostgreSQL para garantir pg_dump v17
           sudo install -d /usr/share/postgresql-common/pgdg
           sudo curl -fsSL -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
           sudo sh -c 'echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
@@ -36,24 +35,31 @@ jobs:
           DATE=$(date +%Y-%m-%d)
           echo "TODAY_DATE=$DATE" >> $GITHUB_ENV
           mkdir -p "backups/$DATE/storage"
+          mkdir -p "backups/$DATE/config"
 
-      - name: 1. Dump do Banco de Dados (SQL Compactado)
+      - name: 1. Dump do Banco de Dados (Schema + Dados + Permissões)
         run: |
           /usr/lib/postgresql/17/bin/pg_dump "${{ secrets.SUPABASE_DB_URL }}" \
             --clean \
             --if-exists \
             --no-owner \
-            --no-acl \
             | gzip > "backups/${{ env.TODAY_DATE }}/banco_completo.sql.gz"
 
-      - name: 2. Download do Storage do Supabase
+      - name: 2. Download dos Arquivos do Storage
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           OUTPUT_STORAGE_DIR: "backups/${{ env.TODAY_DATE }}/storage"
         run: node download_storage.js
 
-      - name: 3. Compactar Backup e Upload para SharePoint
+      - name: 3. Backup de Configurações, Auth e Edge Functions
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          OUTPUT_CONFIG_DIR: "backups/${{ env.TODAY_DATE }}/config"
+        run: node backup_config.js
+
+      - name: 4. Compactar e Upload para SharePoint
         env:
           SHAREPOINT_TENANT_ID: ${{ secrets.SHAREPOINT_TENANT_ID }}
           SHAREPOINT_CLIENT_ID: ${{ secrets.SHAREPOINT_CLIENT_ID }}
@@ -65,5 +71,4 @@ jobs:
           ARCHIVE="backup-${{ env.TODAY_DATE }}.tar.gz"
           tar -czf "$ARCHIVE" "backups/${{ env.TODAY_DATE }}"
           echo "Arquivo criado: $ARCHIVE ($(du -sh $ARCHIVE | cut -f1))"
-
           LOCAL_BACKUP_FILE="$ARCHIVE" node upload_sharepoint.js
