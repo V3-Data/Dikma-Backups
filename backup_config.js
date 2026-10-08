@@ -8,20 +8,30 @@ const OUTPUT_DIR = process.env.OUTPUT_CONFIG_DIR || './config';
 const PROJECT_REF = new URL(SUPABASE_URL).hostname.split('.')[0];
 const API_BASE = 'https://api.supabase.com/v1';
 
+let skipped = [];
+
 async function apiGet(endpoint) {
   const res = await fetch(`${API_BASE}${endpoint}`, {
     headers: { Authorization: `Bearer ${ACCESS_TOKEN}` },
   });
   if (!res.ok) {
     const text = await res.text();
-    throw new Error(`GET ${endpoint} → ${res.status}: ${text}`);
+    throw new Error(`${res.status}: ${text}`);
   }
   return res.json();
 }
 
-async function saveJson(filename, data) {
-  fs.writeFileSync(path.join(OUTPUT_DIR, filename), JSON.stringify(data, null, 2));
-  console.log(`  Salvo: ${filename}`);
+async function tryGet(label, endpoint, filename) {
+  try {
+    const data = await apiGet(endpoint);
+    fs.writeFileSync(path.join(OUTPUT_DIR, filename), JSON.stringify(data, null, 2));
+    console.log(`  OK: ${filename}`);
+    return data;
+  } catch (e) {
+    console.warn(`  IGNORADO (${label}): ${e.message}`);
+    skipped.push({ label, endpoint, error: e.message });
+    return null;
+  }
 }
 
 async function main() {
@@ -35,60 +45,60 @@ async function main() {
 
   // 1. Informações gerais do projeto
   console.log('1. Informações do projeto...');
-  const project = await apiGet(`/projects/${PROJECT_REF}`);
-  await saveJson('project.json', project);
+  await tryGet('project info', `/projects/${PROJECT_REF}`, 'project.json');
 
-  // 2. Configurações de autenticação (provedores, JWT, email, etc.)
+  // 2. Configurações de autenticação
   console.log('2. Configurações de autenticação...');
-  const authConfig = await apiGet(`/projects/${PROJECT_REF}/config/auth`);
-  await saveJson('auth_config.json', authConfig);
+  await tryGet('auth config', `/projects/${PROJECT_REF}/config/auth`, 'auth_config.json');
 
   // 3. Configurações de API (anon key, service role key)
   console.log('3. Configurações de API...');
-  try {
-    const apiSettings = await apiGet(`/projects/${PROJECT_REF}/api`);
-    await saveJson('api_settings.json', apiSettings);
-  } catch (e) {
-    console.warn(`  Aviso: ${e.message}`);
-  }
+  await tryGet('api settings', `/projects/${PROJECT_REF}/api`, 'api_settings.json');
 
-  // 4. Secrets das Edge Functions (nomes — valores não são expostos pela API por segurança)
+  // 4. Secrets das Edge Functions (apenas nomes)
   console.log('4. Nomes dos secrets...');
-  try {
-    const secrets = await apiGet(`/projects/${PROJECT_REF}/secrets`);
-    await saveJson('secrets_names.json', secrets);
-  } catch (e) {
-    console.warn(`  Aviso: ${e.message}`);
-  }
+  await tryGet('secrets', `/projects/${PROJECT_REF}/secrets`, 'secrets_names.json');
 
-  // 5. Edge Functions — lista + código de cada uma
+  // 5. Edge Functions
   console.log('5. Edge Functions...');
-  const functions = await apiGet(`/projects/${PROJECT_REF}/functions`);
-  await saveJson('functions/index.json', functions);
+  const functions = await tryGet('functions list', `/projects/${PROJECT_REF}/functions`, 'functions/index.json');
 
-  for (const fn of functions) {
-    try {
-      const bodyRes = await fetch(
-        `${API_BASE}/projects/${PROJECT_REF}/functions/${fn.slug}/body`,
-        { headers: { Authorization: `Bearer ${ACCESS_TOKEN}` } }
-      );
-      if (bodyRes.ok) {
-        const buffer = Buffer.from(await bodyRes.arrayBuffer());
-        const outPath = path.join(OUTPUT_DIR, 'functions', `${fn.slug}.zip`);
-        fs.writeFileSync(outPath, buffer);
-        console.log(`  Baixada: ${fn.slug}`);
-      } else {
-        console.warn(`  Aviso: ${fn.slug} → ${bodyRes.status}`);
+  if (functions && Array.isArray(functions)) {
+    for (const fn of functions) {
+      try {
+        const bodyRes = await fetch(
+          `${API_BASE}/projects/${PROJECT_REF}/functions/${fn.slug}/body`,
+          { headers: { Authorization: `Bearer ${ACCESS_TOKEN}` } }
+        );
+        if (bodyRes.ok) {
+          const buffer = Buffer.from(await bodyRes.arrayBuffer());
+          fs.writeFileSync(path.join(OUTPUT_DIR, 'functions', `${fn.slug}.zip`), buffer);
+          console.log(`  Baixada: ${fn.slug}`);
+        } else {
+          console.warn(`  IGNORADO (${fn.slug} body): ${bodyRes.status}`);
+          skipped.push({ label: `function body: ${fn.slug}`, error: String(bodyRes.status) });
+        }
+      } catch (e) {
+        console.warn(`  IGNORADO (${fn.slug}): ${e.message}`);
+        skipped.push({ label: `function body: ${fn.slug}`, error: e.message });
       }
-    } catch (e) {
-      console.warn(`  Erro em ${fn.slug}: ${e.message}`);
     }
   }
 
-  console.log('\nExportação concluída.');
+  // Relatório final
+  if (skipped.length > 0) {
+    fs.writeFileSync(
+      path.join(OUTPUT_DIR, 'skipped.json'),
+      JSON.stringify(skipped, null, 2)
+    );
+    console.log(`\nAtenção: ${skipped.length} item(s) não exportados (ver config/skipped.json).`);
+    console.log('Para exportar tudo, crie um token sem restrições de permissão no Supabase.');
+  } else {
+    console.log('\nExportação completa.');
+  }
 }
 
 main().catch(err => {
-  console.error('Erro:', err.message);
+  console.error('Erro fatal:', err.message);
   process.exit(1);
 });
