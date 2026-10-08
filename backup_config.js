@@ -51,9 +51,9 @@ async function main() {
   console.log('2. Configurações de autenticação...');
   await tryGet('auth config', `/projects/${PROJECT_REF}/config/auth`, 'auth_config.json');
 
-  // 3. Configurações de API (anon key, service role key)
-  console.log('3. Configurações de API...');
-  await tryGet('api settings', `/projects/${PROJECT_REF}/api`, 'api_settings.json');
+  // 3. API Keys (anon key, service role key) — endpoint correto é /api-keys
+  console.log('3. API Keys do projeto...');
+  await tryGet('api keys', `/projects/${PROJECT_REF}/api-keys`, 'api_keys.json');
 
   // 4. Secrets das Edge Functions (apenas nomes)
   console.log('4. Nomes dos secrets...');

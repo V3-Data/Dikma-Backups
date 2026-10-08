@@ -35,6 +35,7 @@ jobs:
           DATE=$(date +%Y-%m-%d)
           echo "TODAY_DATE=$DATE" >> $GITHUB_ENV
           mkdir -p "backups/$DATE/storage"
+          mkdir -p "backups/$DATE/config"
 
       - name: 1. Dump do Banco de Dados (Schema + Dados + Permissões)
         run: |
@@ -51,7 +52,14 @@ jobs:
           OUTPUT_STORAGE_DIR: "backups/${{ env.TODAY_DATE }}/storage"
         run: node download_storage.js
 
-      - name: 3. Compactar e Upload para SharePoint
+      - name: 3. Backup de Configurações, Auth e Edge Functions
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          OUTPUT_CONFIG_DIR: "backups/${{ env.TODAY_DATE }}/config"
+        run: node backup_config.js
+
+      - name: 4. Compactar e Upload para SharePoint
         env:
           SHAREPOINT_TENANT_ID: ${{ secrets.SHAREPOINT_TENANT_ID }}
           SHAREPOINT_CLIENT_ID: ${{ secrets.SHAREPOINT_CLIENT_ID }}

@@ -1,4 +1,5 @@
 .env
+.env.restore
 node_modules/
 backups/
 *.sql.gz
