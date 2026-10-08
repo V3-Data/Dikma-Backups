@@ -1,0 +1,62 @@
+name: Supabase Daily Backup to SharePoint
+
+on:
+  schedule:
+    - cron: '0 3 * * *' # Todo dia às 03:00 UTC (00:00 Horário de Brasília)
+  workflow_dispatch: # Permite rodar manualmente pela interface do GitHub
+
+jobs:
+  backup-and-upload:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout do Repositório
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Instalar Dependências
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y postgresql-client
+          npm install
+
+      - name: Criar Estrutura de Pastas e Definir Data
+        run: |
+          DATE=$(date +%Y-%m-%d)
+          echo "TODAY_DATE=$DATE" >> $GITHUB_ENV
+          mkdir -p "backups/$DATE/storage"
+
+      - name: 1. Dump do Banco de Dados (SQL Compactado)
+        run: |
+          pg_dump "${{ secrets.SUPABASE_DB_URL }}" \
+            --clean \
+            --if-exists \
+            --no-owner \
+            --no-acl \
+            | gzip > "backups/${{ env.TODAY_DATE }}/banco_completo.sql.gz"
+
+      - name: 2. Download do Storage do Supabase
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          OUTPUT_STORAGE_DIR: "backups/${{ env.TODAY_DATE }}/storage"
+        run: node download_storage.js
+
+      - name: 3. Compactar Backup e Upload para SharePoint
+        env:
+          SHAREPOINT_TENANT_ID: ${{ secrets.SHAREPOINT_TENANT_ID }}
+          SHAREPOINT_CLIENT_ID: ${{ secrets.SHAREPOINT_CLIENT_ID }}
+          SHAREPOINT_CLIENT_SECRET: ${{ secrets.SHAREPOINT_CLIENT_SECRET }}
+          SHAREPOINT_SITE_URL: ${{ secrets.SHAREPOINT_SITE_URL }}
+          SHAREPOINT_REMOTE_FOLDER: ${{ secrets.SHAREPOINT_PATH }}
+          TODAY_DATE: ${{ env.TODAY_DATE }}
+        run: |
+          ARCHIVE="backup-${{ env.TODAY_DATE }}.tar.gz"
+          tar -czf "$ARCHIVE" "backups/${{ env.TODAY_DATE }}"
+          echo "Arquivo criado: $ARCHIVE ($(du -sh $ARCHIVE | cut -f1))"
+
+          LOCAL_BACKUP_FILE="$ARCHIVE" node upload_sharepoint.js
