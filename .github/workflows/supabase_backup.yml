@@ -38,7 +38,7 @@ jobs:
 
       - name: 1. Dump do Banco de Dados (SQL Compactado)
         run: |
-          pg_dump "${{ secrets.SUPABASE_DB_URL }}" \
+          /usr/lib/postgresql/17/bin/pg_dump "${{ secrets.SUPABASE_DB_URL }}" \
             --clean \
             --if-exists \
             --no-owner \
