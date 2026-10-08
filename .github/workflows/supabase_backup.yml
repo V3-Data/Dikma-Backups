@@ -61,6 +61,6 @@ jobs:
           TODAY_DATE: ${{ env.TODAY_DATE }}
         run: |
           ARCHIVE="backup-${{ env.TODAY_DATE }}.tar.gz"
-          tar -czf "$ARCHIVE" "backups/${{ env.TODAY_DATE }}"
+          tar -czf "$ARCHIVE" -C "backups/${{ env.TODAY_DATE }}" .
           echo "Arquivo criado: $ARCHIVE ($(du -sh $ARCHIVE | cut -f1))"
           LOCAL_BACKUP_FILE="$ARCHIVE" node upload_sharepoint.js
