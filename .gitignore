@@ -1,5 +1,8 @@
 .env
+.env.financeiro
 .env.restore
+.env.restore.crm-vt
+.env.restore.financeiro
 node_modules/
 backups/
 *.sql.gz

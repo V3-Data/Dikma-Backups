@@ -92,7 +92,6 @@ async function main() {
       JSON.stringify(skipped, null, 2)
     );
     console.log(`\nAtenção: ${skipped.length} item(s) não exportados (ver config/skipped.json).`);
-    console.log('Para exportar tudo, crie um token sem restrições de permissão no Supabase.');
   } else {
     console.log('\nExportação completa.');
   }
