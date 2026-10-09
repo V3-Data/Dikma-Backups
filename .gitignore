@@ -7,3 +7,4 @@ node_modules/
 backups/
 *.sql.gz
 *.tar.gz
+supabase/

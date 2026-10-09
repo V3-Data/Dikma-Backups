@@ -123,7 +123,34 @@ Esses arquivos nunca são commitados (`.gitignore`).
 
 ## Restore
 
-> Use sempre credenciais de um banco de **desenvolvimento ou staging**, nunca de produção.
+O script lê as credenciais do **banco de destino** a partir de `.env.restore.crm-vt` ou `.env.restore.financeiro` — arquivos locais e gitignored. Basta apontar esses arquivos para o banco desejado (produção, staging ou um projeto em branco para teste).
+
+### Testando o restore em um banco zerado (recomendado antes de usar em produção)
+
+1. Crie um projeto Supabase novo (plano gratuito serve) exclusivo para testes
+2. Copie o template e preencha com as credenciais desse projeto de teste:
+
+```bash
+cp .env.restore.crm-vt.example .env.restore.crm-vt
+```
+
+```env
+SUPABASE_DB_URL=postgresql://postgres.SEU_PROJETO_TESTE:SENHA@aws-...pooler.supabase.com:6543/postgres
+SUPABASE_URL=https://SEU_PROJETO_TESTE.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=eyJ...
+SUPABASE_ACCESS_TOKEN=sbp_...  # opcional, só para testar reimplantação de Edge Functions
+```
+
+3. Execute o restore e valide o resultado:
+
+```bash
+./restore.sh crm_vt backup-2026-10-09.tar.gz
+node validate_backup.js ./backups/2026-10-09 crm_vt
+```
+
+Para apontar o restore para produção, basta trocar as credenciais no `.env.restore.crm-vt` — o script não muda.
+
+### Restore em produção
 
 ### 1. Crie o arquivo de credenciais de destino
 
