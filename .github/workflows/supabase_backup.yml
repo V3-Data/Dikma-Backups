@@ -2,7 +2,7 @@ name: Backup Supabase para SharePoint
 
 on:
   schedule:
-    - cron: '35 13 * * *' # Todo dia às 13:35 UTC (10:35 Horário de Brasília)
+    - cron: '20 14 * * *' # Todo dia às 13:35 UTC (10:35 Horário de Brasília)
   workflow_dispatch:
 
 jobs:
