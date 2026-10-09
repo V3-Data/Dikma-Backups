@@ -144,7 +144,7 @@ async function validateStorage(supabase) {
     .filter(e => e.isDirectory()).map(e => e.name);
 
   if (localBuckets.length === 0) {
-    fail('Buckets no backup', 'nenhum bucket encontrado');
+    warn('Buckets no backup', 'nenhum bucket — projeto pode não usar Storage');
     return;
   }
 

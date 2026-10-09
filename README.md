@@ -189,23 +189,16 @@ Erros do psql são registrados em `restore-YYYYMMDD-HHMMSS.log` mas não interro
 
 ## Validação de backup
 
-O validador precisa de uma **pasta extraída** — não do arquivo `.tar.gz`. Extraia o backup antes de rodar:
+Use `validate.sh` para verificar a integridade de um backup (`.tar.gz`) diretamente — ele extrai em diretório temporário, valida e limpa:
 
 ```bash
-# 1. Extraia o backup (baixado do SharePoint ou gerado localmente)
-mkdir -p backups/extraido
-tar -xzf backup-2026-10-09.tar.gz -C backups/extraido
-
-# 2. Valide
-# Verificação offline (apenas estrutural, sem conectar ao banco)
-node validate_backup.js backups/extraido
-
-# Com comparação contra o banco ao vivo — carrega .env automaticamente
-node validate_backup.js backups/extraido crm_vt
-node validate_backup.js backups/extraido financeiro
+./validate.sh crm_vt     backup-2026-10-09.tar.gz
+./validate.sh financeiro backup-2026-10-09.tar.gz
 ```
 
-O segundo argumento (`crm_vt` ou `financeiro`) carrega automaticamente o `.env` ou `.env.financeiro` local para conectar ao banco ao vivo e comparar contagem de arquivos no Storage.
+Se o `.env` / `.env.financeiro` estiver presente, o script conecta ao banco ao vivo e compara a contagem de arquivos no Storage. Caso contrário, faz apenas validação estrutural (offline).
+
+> O restore já roda a validação automaticamente no final — o `validate.sh` é para checar um backup sem precisar restaurá-lo.
 
 Saída:
 - `PASS` — item presente e válido
