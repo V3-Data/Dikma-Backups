@@ -11,6 +11,7 @@ supabase/
 
 # Backups e arquivos gerados por restore
 backups/
+restore_tmp_*/
 *.sql.gz
 *.tar.gz
-restore-*.log
+*.log

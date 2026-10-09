@@ -61,7 +61,10 @@ fi
 
 PROJECT_REF=$(echo "$SUPABASE_URL" | sed 's|https://||' | cut -d'.' -f1)
 
-RESTORE_DIR=$(mktemp -d)
+# Diretório de extração relativo ao projeto — evita problemas de conversão de
+# caminho entre Git Bash e Node.js no Windows (/tmp vs C:\tmp)
+RESTORE_DIR="./restore_tmp_$$"
+mkdir -p "$RESTORE_DIR"
 trap 'rm -rf "$RESTORE_DIR"' EXIT
 
 echo "Extraindo $BACKUP_FILE em: $RESTORE_DIR"
@@ -92,16 +95,18 @@ node restore_storage.js
 echo ""
 echo "=== 3. Implantando Edge Functions ==="
 FUNCTIONS_DIR="$RESTORE_DIR/config/functions"
+INDEX_JSON="$FUNCTIONS_DIR/index.json"
 
 if [ -z "$SUPABASE_ACCESS_TOKEN" ]; then
   echo "SUPABASE_ACCESS_TOKEN não definido — Edge Functions ignoradas."
-elif [ ! -d "$FUNCTIONS_DIR" ] || [ ! -f "$FUNCTIONS_DIR/index.json" ]; then
+elif [ ! -d "$FUNCTIONS_DIR" ] || [ ! -f "$INDEX_JSON" ]; then
   echo "index.json não encontrado no backup — projeto sem Edge Functions, ignorando."
 else
+  # Passa o path como argumento de CLI (MSYS2 converte corretamente no Windows)
   SLUGS=$(node -e "
-    const fns = JSON.parse(require('fs').readFileSync('$FUNCTIONS_DIR/index.json'));
+    const fns = JSON.parse(require('fs').readFileSync(process.argv[1]));
     fns.forEach(f => console.log(f.slug));
-  ")
+  " "$INDEX_JSON")
 
   for SLUG in $SLUGS; do
     ZIP_FILE="$FUNCTIONS_DIR/${SLUG}.zip"
