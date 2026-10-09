@@ -179,7 +179,7 @@ O script realiza, nesta ordem:
 1. **Extração** — descompacta o `.tar.gz` em diretório temporário
 2. **Banco de dados** — psql restaura o dump SQL completo
 3. **Storage** — recria buckets e faz upload de todos os arquivos
-4. **Edge Functions** — reimplanta via Management API (requer `SUPABASE_ACCESS_TOKEN`)
+4. **Edge Functions** — cria ou atualiza via Management API automaticamente (PUT para existentes, POST para novas)
 5. **Validação automática** — roda `validate_backup.js` no diretório extraído para confirmar a integridade do que foi restaurado
 6. **Limpeza** — remove o diretório temporário (mesmo em caso de erro)
 

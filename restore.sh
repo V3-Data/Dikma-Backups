@@ -95,64 +95,15 @@ node restore_storage.js
 echo ""
 echo "=== 3. Implantando Edge Functions ==="
 FUNCTIONS_DIR="$RESTORE_DIR/config/functions"
-INDEX_JSON="$FUNCTIONS_DIR/index.json"
 
 if [ -z "$SUPABASE_ACCESS_TOKEN" ]; then
   echo "SUPABASE_ACCESS_TOKEN não definido — Edge Functions ignoradas."
-elif [ ! -d "$FUNCTIONS_DIR" ] || [ ! -f "$INDEX_JSON" ]; then
+elif [ ! -d "$FUNCTIONS_DIR" ] || [ ! -f "$FUNCTIONS_DIR/index.json" ]; then
   echo "index.json não encontrado no backup — projeto sem Edge Functions, ignorando."
 else
-  # Passa o path como argumento de CLI (MSYS2 converte corretamente no Windows)
-  SLUGS=$(node -e "
-    const fns = JSON.parse(require('fs').readFileSync(process.argv[1]));
-    fns.forEach(f => console.log(f.slug));
-  " "$INDEX_JSON")
-
-  for SLUG in $SLUGS; do
-    ZIP_FILE="$FUNCTIONS_DIR/${SLUG}.zip"
-    if [ ! -f "$ZIP_FILE" ]; then
-      echo "  ZIP não encontrado para $SLUG — ignorando."
-      continue
-    fi
-
-    echo "  Implantando: $SLUG"
-
-    # Tenta atualizar (PUT). Se 404, a função não existe no projeto destino — cria primeiro (POST)
-    HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
-      -X PUT "https://api.supabase.com/v1/projects/$PROJECT_REF/functions/$SLUG/body" \
-      -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
-      -H "Content-Type: application/zip" \
-      --data-binary "@$ZIP_FILE")
-
-    if [ "$HTTP_STATUS" = "404" ]; then
-      echo "  Função não existe — criando: $SLUG"
-      POST_RESPONSE=$(curl -s -w "\n%{http_code}" \
-        -X POST "https://api.supabase.com/v1/projects/$PROJECT_REF/functions" \
-        -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
-        -H "Content-Type: application/json" \
-        -d "{\"slug\": \"$SLUG\", \"name\": \"$SLUG\", \"verify_jwt\": true}")
-      POST_STATUS=$(echo "$POST_RESPONSE" | tail -1)
-      POST_BODY=$(echo "$POST_RESPONSE" | head -1)
-      echo "  POST $SLUG: HTTP $POST_STATUS — $POST_BODY"
-
-      if [ "$POST_STATUS" = "200" ] || [ "$POST_STATUS" = "201" ]; then
-        HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
-          -X PUT "https://api.supabase.com/v1/projects/$PROJECT_REF/functions/$SLUG/body" \
-          -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
-          -H "Content-Type: application/zip" \
-          --data-binary "@$ZIP_FILE")
-      else
-        echo "  Não foi possível criar $SLUG — deploy ignorado."
-        continue
-      fi
-    fi
-
-    if [ "$HTTP_STATUS" = "200" ] || [ "$HTTP_STATUS" = "201" ] || [ "$HTTP_STATUS" = "202" ]; then
-      echo "  OK: $SLUG (HTTP $HTTP_STATUS)"
-    else
-      echo "  Erro: $SLUG retornou HTTP $HTTP_STATUS"
-    fi
-  done
+  SUPABASE_ACCESS_TOKEN="$SUPABASE_ACCESS_TOKEN" \
+  SUPABASE_URL="$SUPABASE_URL" \
+  node restore_functions.js "$FUNCTIONS_DIR"
 fi
 
 # 4. Validação do backup restaurado
