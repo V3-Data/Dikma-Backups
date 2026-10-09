@@ -126,17 +126,25 @@ else
 
     if [ "$HTTP_STATUS" = "404" ]; then
       echo "  Função não existe — criando: $SLUG"
-      curl -s -o /dev/null \
+      POST_RESPONSE=$(curl -s -w "\n%{http_code}" \
         -X POST "https://api.supabase.com/v1/projects/$PROJECT_REF/functions" \
         -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
         -H "Content-Type: application/json" \
-        -d "{\"slug\": \"$SLUG\", \"name\": \"$SLUG\", \"verify_jwt\": true}"
+        -d "{\"slug\": \"$SLUG\", \"name\": \"$SLUG\", \"verify_jwt\": true}")
+      POST_STATUS=$(echo "$POST_RESPONSE" | tail -1)
+      POST_BODY=$(echo "$POST_RESPONSE" | head -1)
+      echo "  POST $SLUG: HTTP $POST_STATUS — $POST_BODY"
 
-      HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
-        -X PUT "https://api.supabase.com/v1/projects/$PROJECT_REF/functions/$SLUG/body" \
-        -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
-        -H "Content-Type: application/zip" \
-        --data-binary "@$ZIP_FILE")
+      if [ "$POST_STATUS" = "200" ] || [ "$POST_STATUS" = "201" ]; then
+        HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+          -X PUT "https://api.supabase.com/v1/projects/$PROJECT_REF/functions/$SLUG/body" \
+          -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
+          -H "Content-Type: application/zip" \
+          --data-binary "@$ZIP_FILE")
+      else
+        echo "  Não foi possível criar $SLUG — deploy ignorado."
+        continue
+      fi
     fi
 
     if [ "$HTTP_STATUS" = "200" ] || [ "$HTTP_STATUS" = "201" ] || [ "$HTTP_STATUS" = "202" ]; then
