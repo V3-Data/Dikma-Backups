@@ -116,13 +116,30 @@ else
     fi
 
     echo "  Implantando: $SLUG"
+
+    # Tenta atualizar (PUT). Se 404, a função não existe no projeto destino — cria primeiro (POST)
     HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
       -X PUT "https://api.supabase.com/v1/projects/$PROJECT_REF/functions/$SLUG/body" \
       -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
       -H "Content-Type: application/zip" \
       --data-binary "@$ZIP_FILE")
 
-    if [ "$HTTP_STATUS" = "200" ] || [ "$HTTP_STATUS" = "201" ]; then
+    if [ "$HTTP_STATUS" = "404" ]; then
+      echo "  Função não existe — criando: $SLUG"
+      curl -s -o /dev/null \
+        -X POST "https://api.supabase.com/v1/projects/$PROJECT_REF/functions" \
+        -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
+        -H "Content-Type: application/json" \
+        -d "{\"slug\": \"$SLUG\", \"name\": \"$SLUG\", \"verify_jwt\": true}"
+
+      HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+        -X PUT "https://api.supabase.com/v1/projects/$PROJECT_REF/functions/$SLUG/body" \
+        -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
+        -H "Content-Type: application/zip" \
+        --data-binary "@$ZIP_FILE")
+    fi
+
+    if [ "$HTTP_STATUS" = "200" ] || [ "$HTTP_STATUS" = "201" ] || [ "$HTTP_STATUS" = "202" ]; then
       echo "  OK: $SLUG (HTTP $HTTP_STATUS)"
     else
       echo "  Erro: $SLUG retornou HTTP $HTTP_STATUS"
