@@ -176,25 +176,33 @@ cp .env.restore.financeiro.example .env.restore.financeiro
 ```
 
 O script realiza, nesta ordem:
-1. **Banco de dados** — psql restaura o dump SQL completo
-2. **Storage** — recria buckets e faz upload de todos os arquivos
-3. **Edge Functions** — reimplanta via Management API (requer `SUPABASE_ACCESS_TOKEN`)
+1. **Extração** — descompacta o `.tar.gz` em diretório temporário
+2. **Banco de dados** — psql restaura o dump SQL completo
+3. **Storage** — recria buckets e faz upload de todos os arquivos
+4. **Edge Functions** — reimplanta via Management API (requer `SUPABASE_ACCESS_TOKEN`)
+5. **Validação automática** — roda `validate_backup.js` no diretório extraído para confirmar a integridade do que foi restaurado
+6. **Limpeza** — remove o diretório temporário (mesmo em caso de erro)
 
-Erros do psql são registrados em `restore-YYYYMMDD-HHMMSS.log` mas não interrompem o restore.
+Erros do psql são registrados em `restore-YYYYMMDD-HHMMSS.log` mas não interrompem o restore. Esse arquivo é ignorado pelo git.
 
 ---
 
 ## Validação de backup
 
-Para verificar a integridade de um backup baixado:
+O validador precisa de uma **pasta extraída** — não do arquivo `.tar.gz`. Extraia o backup antes de rodar:
 
 ```bash
+# 1. Extraia o backup (baixado do SharePoint ou gerado localmente)
+mkdir -p backups/extraido
+tar -xzf backup-2026-10-09.tar.gz -C backups/extraido
+
+# 2. Valide
 # Verificação offline (apenas estrutural, sem conectar ao banco)
-node validate_backup.js ./backups/2026-10-09
+node validate_backup.js backups/extraido
 
 # Com comparação contra o banco ao vivo — carrega .env automaticamente
-node validate_backup.js ./backups/2026-10-09 crm_vt
-node validate_backup.js ./backups/2026-10-09 financeiro
+node validate_backup.js backups/extraido crm_vt
+node validate_backup.js backups/extraido financeiro
 ```
 
 O segundo argumento (`crm_vt` ou `financeiro`) carrega automaticamente o `.env` ou `.env.financeiro` local para conectar ao banco ao vivo e comparar contagem de arquivos no Storage.

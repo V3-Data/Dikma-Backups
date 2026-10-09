@@ -62,6 +62,8 @@ fi
 PROJECT_REF=$(echo "$SUPABASE_URL" | sed 's|https://||' | cut -d'.' -f1)
 
 RESTORE_DIR=$(mktemp -d)
+trap 'rm -rf "$RESTORE_DIR"' EXIT
+
 echo "Extraindo $BACKUP_FILE em: $RESTORE_DIR"
 tar -xzf "$BACKUP_FILE" -C "$RESTORE_DIR"
 
@@ -93,8 +95,8 @@ FUNCTIONS_DIR="$RESTORE_DIR/config/functions"
 
 if [ -z "$SUPABASE_ACCESS_TOKEN" ]; then
   echo "SUPABASE_ACCESS_TOKEN não definido — Edge Functions ignoradas."
-elif [ ! -f "$FUNCTIONS_DIR/index.json" ]; then
-  echo "index.json não encontrado no backup — Edge Functions ignoradas."
+elif [ ! -d "$FUNCTIONS_DIR" ] || [ ! -f "$FUNCTIONS_DIR/index.json" ]; then
+  echo "index.json não encontrado no backup — projeto sem Edge Functions, ignorando."
 else
   SLUGS=$(node -e "
     const fns = JSON.parse(require('fs').readFileSync('$FUNCTIONS_DIR/index.json'));
@@ -123,7 +125,12 @@ else
   done
 fi
 
-rm -rf "$RESTORE_DIR"
+# 4. Validação do backup restaurado
+echo ""
+echo "=== 4. Validando backup restaurado ==="
+SUPABASE_URL="$SUPABASE_URL" \
+SUPABASE_SERVICE_ROLE_KEY="$SUPABASE_SERVICE_ROLE_KEY" \
+node validate_backup.js "$RESTORE_DIR" || true
 
 echo ""
 echo "=== Restauração concluída ($DB_NAME) ==="

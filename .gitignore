@@ -1,10 +1,16 @@
+# Credenciais locais
 .env
 .env.financeiro
 .env.restore
 .env.restore.crm-vt
 .env.restore.financeiro
+
+# Dependências
 node_modules/
+supabase/
+
+# Backups e arquivos gerados por restore
 backups/
 *.sql.gz
 *.tar.gz
-supabase/
+restore-*.log
