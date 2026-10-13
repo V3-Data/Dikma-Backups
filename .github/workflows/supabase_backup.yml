@@ -73,15 +73,26 @@ jobs:
         run: |
           printf '%s' "$OPENVPN_CONFIG" > /tmp/vpn.ovpn
           sudo openvpn --config /tmp/vpn.ovpn --daemon --log /tmp/vpn.log
-          echo "Aguardando interface tun0 subir (timeout 60s)..."
-          timeout 60 bash -c 'until ip addr show tun0 2>/dev/null | grep -q "inet "; do sleep 2; echo "  ainda aguardando..."; done'
-          if [ $? -ne 0 ]; then
-            echo "=== OpenVPN log ==="
-            cat /tmp/vpn.log
-            echo "Timeout: VPN não conectou em 60 segundos."
+          echo "Aguardando VPN conectar (max 60s)..."
+          CONNECTED=false
+          for i in $(seq 1 30); do
+            if ip addr show type tun 2>/dev/null | grep -q "inet "; then
+              CONNECTED=true
+              break
+            fi
+            if ! pgrep -x openvpn > /dev/null; then
+              echo "Processo OpenVPN encerrou inesperadamente."
+              break
+            fi
+            echo "  aguardando... ($i/30)"
+            sleep 2
+          done
+          echo "=== OpenVPN log ==="
+          cat /tmp/vpn.log
+          if [ "$CONNECTED" != "true" ]; then
             exit 1
           fi
-          echo "VPN conectada: $(ip addr show tun0 | grep 'inet ')"
+          echo "VPN conectada: $(ip addr show type tun | grep 'inet ')"
 
       - name: 6. Upload para VM via SSH
         env:
@@ -167,15 +178,26 @@ jobs:
         run: |
           printf '%s' "$OPENVPN_CONFIG" > /tmp/vpn.ovpn
           sudo openvpn --config /tmp/vpn.ovpn --daemon --log /tmp/vpn.log
-          echo "Aguardando interface tun0 subir (timeout 60s)..."
-          timeout 60 bash -c 'until ip addr show tun0 2>/dev/null | grep -q "inet "; do sleep 2; echo "  ainda aguardando..."; done'
-          if [ $? -ne 0 ]; then
-            echo "=== OpenVPN log ==="
-            cat /tmp/vpn.log
-            echo "Timeout: VPN não conectou em 60 segundos."
+          echo "Aguardando VPN conectar (max 60s)..."
+          CONNECTED=false
+          for i in $(seq 1 30); do
+            if ip addr show type tun 2>/dev/null | grep -q "inet "; then
+              CONNECTED=true
+              break
+            fi
+            if ! pgrep -x openvpn > /dev/null; then
+              echo "Processo OpenVPN encerrou inesperadamente."
+              break
+            fi
+            echo "  aguardando... ($i/30)"
+            sleep 2
+          done
+          echo "=== OpenVPN log ==="
+          cat /tmp/vpn.log
+          if [ "$CONNECTED" != "true" ]; then
             exit 1
           fi
-          echo "VPN conectada: $(ip addr show tun0 | grep 'inet ')"
+          echo "VPN conectada: $(ip addr show type tun | grep 'inet ')"
 
       - name: 6. Upload para VM via SSH
         env:
