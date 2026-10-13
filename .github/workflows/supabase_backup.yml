@@ -70,9 +70,12 @@ jobs:
       - name: 5. Conectar ao OpenVPN
         env:
           OPENVPN_CONFIG: ${{ secrets.OPENVPN_CONFIG }}
+          OPENVPN_USERNAME: ${{ secrets.OPENVPN_USERNAME }}
+          OPENVPN_PASSWORD: ${{ secrets.OPENVPN_PASSWORD }}
         run: |
           printf '%s' "$OPENVPN_CONFIG" > /tmp/vpn.ovpn
-          sudo openvpn --config /tmp/vpn.ovpn --daemon --log /tmp/vpn.log
+          printf '%s\n%s\n' "$OPENVPN_USERNAME" "$OPENVPN_PASSWORD" > /tmp/vpn-auth.txt
+          sudo openvpn --config /tmp/vpn.ovpn --auth-user-pass /tmp/vpn-auth.txt --daemon --log /tmp/vpn.log
           echo "Aguardando VPN conectar (max 60s)..."
           CONNECTED=false
           for i in $(seq 1 30); do
@@ -175,9 +178,12 @@ jobs:
       - name: 5. Conectar ao OpenVPN
         env:
           OPENVPN_CONFIG: ${{ secrets.OPENVPN_CONFIG }}
+          OPENVPN_USERNAME: ${{ secrets.OPENVPN_USERNAME }}
+          OPENVPN_PASSWORD: ${{ secrets.OPENVPN_PASSWORD }}
         run: |
           printf '%s' "$OPENVPN_CONFIG" > /tmp/vpn.ovpn
-          sudo openvpn --config /tmp/vpn.ovpn --daemon --log /tmp/vpn.log
+          printf '%s\n%s\n' "$OPENVPN_USERNAME" "$OPENVPN_PASSWORD" > /tmp/vpn-auth.txt
+          sudo openvpn --config /tmp/vpn.ovpn --auth-user-pass /tmp/vpn-auth.txt --daemon --log /tmp/vpn.log
           echo "Aguardando VPN conectar (max 60s)..."
           CONNECTED=false
           for i in $(seq 1 30); do
