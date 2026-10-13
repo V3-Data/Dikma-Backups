@@ -1,4 +1,4 @@
-name: Backup Supabase para SharePoint
+name: Backup Supabase para VM do Cliente
 
 on:
   schedule:
@@ -23,7 +23,7 @@ jobs:
       - name: Instalar Dependências
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y curl ca-certificates
+          sudo apt-get install -y curl ca-certificates openvpn
           sudo install -d /usr/share/postgresql-common/pgdg
           sudo curl -fsSL -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
           sudo sh -c 'echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
@@ -60,19 +60,35 @@ jobs:
           OUTPUT_CONFIG_DIR: "backups/${{ env.TODAY_DATE }}/config"
         run: node backup_config.js
 
-      - name: 4. Compactar e Upload para SharePoint
-        env:
-          SHAREPOINT_TENANT_ID: ${{ secrets.SHAREPOINT_TENANT_ID }}
-          SHAREPOINT_CLIENT_ID: ${{ secrets.SHAREPOINT_CLIENT_ID }}
-          SHAREPOINT_CLIENT_SECRET: ${{ secrets.SHAREPOINT_CLIENT_SECRET }}
-          SHAREPOINT_SITE_URL: ${{ secrets.SHAREPOINT_SITE_URL }}
-          SHAREPOINT_REMOTE_FOLDER: ${{ secrets.CRM_VT_SHAREPOINT_PATH }}
-          TODAY_DATE: ${{ env.TODAY_DATE }}
+      - name: 4. Compactar o Backup
         run: |
           ARCHIVE="backup-${{ env.TODAY_DATE }}.tar.gz"
           tar -czf "$ARCHIVE" -C "backups/${{ env.TODAY_DATE }}" .
           echo "Arquivo criado: $ARCHIVE ($(du -sh $ARCHIVE | cut -f1))"
-          LOCAL_BACKUP_FILE="$ARCHIVE" node upload_sharepoint.js
+          echo "ARCHIVE=$ARCHIVE" >> $GITHUB_ENV
+
+      - name: 5. Conectar ao OpenVPN
+        run: |
+          echo "${{ secrets.OPENVPN_CONFIG }}" > /tmp/vpn.ovpn
+          sudo openvpn --config /tmp/vpn.ovpn --daemon --log /tmp/vpn.log
+          sleep 15
+          echo "Verificando conectividade com o servidor..."
+          ping -c 3 "${{ secrets.SSH_HOST }}" || (cat /tmp/vpn.log && exit 1)
+
+      - name: 6. Upload para VM via SSH
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_REMOTE_PATH: ${{ secrets.CRM_VT_SSH_PATH }}
+          LOCAL_BACKUP_FILE: ${{ env.ARCHIVE }}
+          TODAY_DATE: ${{ env.TODAY_DATE }}
+        run: node upload_ssh.js
+
+      - name: 7. Desconectar OpenVPN
+        if: always()
+        run: sudo pkill openvpn || true
 
   backup-financeiro:
     name: Backup — Financeiro
@@ -93,7 +109,7 @@ jobs:
       - name: Instalar Dependências
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y curl ca-certificates
+          sudo apt-get install -y curl ca-certificates openvpn
           sudo install -d /usr/share/postgresql-common/pgdg
           sudo curl -fsSL -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
           sudo sh -c 'echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
@@ -130,16 +146,32 @@ jobs:
           OUTPUT_CONFIG_DIR: "backups/${{ env.TODAY_DATE }}/config"
         run: node backup_config.js
 
-      - name: 4. Compactar e Upload para SharePoint
-        env:
-          SHAREPOINT_TENANT_ID: ${{ secrets.SHAREPOINT_TENANT_ID }}
-          SHAREPOINT_CLIENT_ID: ${{ secrets.SHAREPOINT_CLIENT_ID }}
-          SHAREPOINT_CLIENT_SECRET: ${{ secrets.SHAREPOINT_CLIENT_SECRET }}
-          SHAREPOINT_SITE_URL: ${{ secrets.SHAREPOINT_SITE_URL }}
-          SHAREPOINT_REMOTE_FOLDER: ${{ secrets.FINANCEIRO_SHAREPOINT_PATH }}
-          TODAY_DATE: ${{ env.TODAY_DATE }}
+      - name: 4. Compactar o Backup
         run: |
           ARCHIVE="backup-${{ env.TODAY_DATE }}.tar.gz"
           tar -czf "$ARCHIVE" -C "backups/${{ env.TODAY_DATE }}" .
           echo "Arquivo criado: $ARCHIVE ($(du -sh $ARCHIVE | cut -f1))"
-          LOCAL_BACKUP_FILE="$ARCHIVE" node upload_sharepoint.js
+          echo "ARCHIVE=$ARCHIVE" >> $GITHUB_ENV
+
+      - name: 5. Conectar ao OpenVPN
+        run: |
+          echo "${{ secrets.OPENVPN_CONFIG }}" > /tmp/vpn.ovpn
+          sudo openvpn --config /tmp/vpn.ovpn --daemon --log /tmp/vpn.log
+          sleep 15
+          echo "Verificando conectividade com o servidor..."
+          ping -c 3 "${{ secrets.SSH_HOST }}" || (cat /tmp/vpn.log && exit 1)
+
+      - name: 6. Upload para VM via SSH
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_REMOTE_PATH: ${{ secrets.FINANCEIRO_SSH_PATH }}
+          LOCAL_BACKUP_FILE: ${{ env.ARCHIVE }}
+          TODAY_DATE: ${{ env.TODAY_DATE }}
+        run: node upload_ssh.js
+
+      - name: 7. Desconectar OpenVPN
+        if: always()
+        run: sudo pkill openvpn || true
