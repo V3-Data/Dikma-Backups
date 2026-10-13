@@ -101,7 +101,7 @@ jobs:
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
         run: |
-          printf '%s' "$SSH_PRIVATE_KEY" > /tmp/ssh_key
+          printf '%s' "$SSH_PRIVATE_KEY" | tr -d '\r' > /tmp/ssh_key
           chmod 600 /tmp/ssh_key
           PORT=$(echo "${{ secrets.SSH_PORT }}" | tr -cd '0-9')
           PORT="${PORT:-22}"
@@ -215,7 +215,7 @@ jobs:
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
         run: |
-          printf '%s' "$SSH_PRIVATE_KEY" > /tmp/ssh_key
+          printf '%s' "$SSH_PRIVATE_KEY" | tr -d '\r' > /tmp/ssh_key
           chmod 600 /tmp/ssh_key
           PORT=$(echo "${{ secrets.SSH_PORT }}" | tr -cd '0-9')
           PORT="${PORT:-22}"
