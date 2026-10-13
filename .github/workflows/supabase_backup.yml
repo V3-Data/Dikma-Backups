@@ -68,8 +68,10 @@ jobs:
           echo "ARCHIVE=$ARCHIVE" >> $GITHUB_ENV
 
       - name: 5. Conectar ao OpenVPN
+        env:
+          OPENVPN_CONFIG: ${{ secrets.OPENVPN_CONFIG }}
         run: |
-          echo "${{ secrets.OPENVPN_CONFIG }}" > /tmp/vpn.ovpn
+          printf '%s' "$OPENVPN_CONFIG" > /tmp/vpn.ovpn
           sudo openvpn --config /tmp/vpn.ovpn --daemon --log /tmp/vpn.log
           sleep 15
           echo "Verificando conectividade com o servidor..."
@@ -154,8 +156,10 @@ jobs:
           echo "ARCHIVE=$ARCHIVE" >> $GITHUB_ENV
 
       - name: 5. Conectar ao OpenVPN
+        env:
+          OPENVPN_CONFIG: ${{ secrets.OPENVPN_CONFIG }}
         run: |
-          echo "${{ secrets.OPENVPN_CONFIG }}" > /tmp/vpn.ovpn
+          printf '%s' "$OPENVPN_CONFIG" > /tmp/vpn.ovpn
           sudo openvpn --config /tmp/vpn.ovpn --daemon --log /tmp/vpn.log
           sleep 15
           echo "Verificando conectividade com o servidor..."
