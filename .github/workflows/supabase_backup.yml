@@ -72,6 +72,9 @@ jobs:
           OPENVPN_CONFIG: ${{ secrets.OPENVPN_CONFIG }}
         run: |
           printf '%s' "$OPENVPN_CONFIG" > /tmp/vpn.ovpn
+          echo "=== DEBUG: primeiras 3 linhas do vpn.ovpn ==="
+          head -3 /tmp/vpn.ovpn
+          echo "=============================================="
           sudo openvpn --config /tmp/vpn.ovpn --daemon --log /tmp/vpn.log
           sleep 15
           echo "Verificando conectividade com o servidor..."
