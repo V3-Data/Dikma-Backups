@@ -37,6 +37,9 @@ async function upload() {
     port: parseInt(SSH_PORT),
     username: SSH_USER,
     privateKey: SSH_PRIVATE_KEY,
+    keepaliveInterval: 10000,
+    keepaliveCountMax: 10,
+    readyTimeout: 30000,
   });
 
   console.log(`Criando diretório remoto: ${remoteDir}`);
