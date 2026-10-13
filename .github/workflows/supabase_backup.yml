@@ -111,7 +111,8 @@ jobs:
           echo "================================"
           PORT=$(echo "${{ secrets.SSH_PORT }}" | tr -cd '0-9')
           PORT="${PORT:-22}"
-          REMOTE_DIR="${{ secrets.CRM_VT_SSH_PATH }}/${{ env.TODAY_DATE }}"
+          REMOTE_BASE=$(echo "${{ secrets.CRM_VT_SSH_PATH }}" | sed 's|^[A-Za-z]:/.*Git||')
+          REMOTE_DIR="$REMOTE_BASE/${{ env.TODAY_DATE }}"
           COMMON_OPTS="-i /tmp/ssh_key -o StrictHostKeyChecking=no -o ConnectTimeout=30 -o ServerAliveInterval=10"
           REMOTE="${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}"
           ssh -p "$PORT" $COMMON_OPTS "$REMOTE" "mkdir -p '$REMOTE_DIR' && echo 'Dir OK:' \$(ls -ld '$REMOTE_DIR')"
@@ -231,7 +232,8 @@ jobs:
           echo "================================"
           PORT=$(echo "${{ secrets.SSH_PORT }}" | tr -cd '0-9')
           PORT="${PORT:-22}"
-          REMOTE_DIR="${{ secrets.FINANCEIRO_SSH_PATH }}/${{ env.TODAY_DATE }}"
+          REMOTE_BASE=$(echo "${{ secrets.FINANCEIRO_SSH_PATH }}" | sed 's|^[A-Za-z]:/.*Git||')
+          REMOTE_DIR="$REMOTE_BASE/${{ env.TODAY_DATE }}"
           COMMON_OPTS="-i /tmp/ssh_key -o StrictHostKeyChecking=no -o ConnectTimeout=30 -o ServerAliveInterval=10"
           REMOTE="${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}"
           ssh -p "$PORT" $COMMON_OPTS "$REMOTE" "mkdir -p '$REMOTE_DIR' && echo 'Dir OK:' \$(ls -ld '$REMOTE_DIR')"
