@@ -114,9 +114,9 @@ jobs:
           REMOTE_DIR="${{ secrets.CRM_VT_SSH_PATH }}/${{ env.TODAY_DATE }}"
           COMMON_OPTS="-i /tmp/ssh_key -o StrictHostKeyChecking=no -o ConnectTimeout=30 -o ServerAliveInterval=10"
           REMOTE="${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}"
-          ssh -p "$PORT" $COMMON_OPTS "$REMOTE" "mkdir -p $REMOTE_DIR"
-          echo "Enviando ${{ env.ARCHIVE }} ($(du -sh ${{ env.ARCHIVE }} | cut -f1)) → $REMOTE_DIR/"
-          scp -P "$PORT" $COMMON_OPTS "${{ env.ARCHIVE }}" "$REMOTE:$REMOTE_DIR/"
+          ssh -p "$PORT" $COMMON_OPTS "$REMOTE" "mkdir -p '$REMOTE_DIR' && echo 'Dir OK:' \$(ls -ld '$REMOTE_DIR')"
+          echo "Enviando ${{ env.ARCHIVE }} ($(du -sh ${{ env.ARCHIVE }} | cut -f1)) → $REMOTE_DIR/${{ env.ARCHIVE }}"
+          scp -P "$PORT" $COMMON_OPTS "${{ env.ARCHIVE }}" "$REMOTE:$REMOTE_DIR/${{ env.ARCHIVE }}"
           rm -f /tmp/ssh_key
           echo "Upload concluído!"
 
@@ -234,9 +234,9 @@ jobs:
           REMOTE_DIR="${{ secrets.FINANCEIRO_SSH_PATH }}/${{ env.TODAY_DATE }}"
           COMMON_OPTS="-i /tmp/ssh_key -o StrictHostKeyChecking=no -o ConnectTimeout=30 -o ServerAliveInterval=10"
           REMOTE="${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}"
-          ssh -p "$PORT" $COMMON_OPTS "$REMOTE" "mkdir -p $REMOTE_DIR"
-          echo "Enviando ${{ env.ARCHIVE }} ($(du -sh ${{ env.ARCHIVE }} | cut -f1)) → $REMOTE_DIR/"
-          scp -P "$PORT" $COMMON_OPTS "${{ env.ARCHIVE }}" "$REMOTE:$REMOTE_DIR/"
+          ssh -p "$PORT" $COMMON_OPTS "$REMOTE" "mkdir -p '$REMOTE_DIR' && echo 'Dir OK:' \$(ls -ld '$REMOTE_DIR')"
+          echo "Enviando ${{ env.ARCHIVE }} ($(du -sh ${{ env.ARCHIVE }} | cut -f1)) → $REMOTE_DIR/${{ env.ARCHIVE }}"
+          scp -P "$PORT" $COMMON_OPTS "${{ env.ARCHIVE }}" "$REMOTE:$REMOTE_DIR/${{ env.ARCHIVE }}"
           rm -f /tmp/ssh_key
           echo "Upload concluído!"
 
