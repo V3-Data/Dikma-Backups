@@ -43,7 +43,19 @@ async function upload() {
   await sftp.mkdir(remoteDir, true);
 
   console.log(`Enviando ${LOCAL_BACKUP_FILE} (${fileSize} MB) → ${remoteFile}`);
-  await sftp.put(LOCAL_BACKUP_FILE, remoteFile);
+
+  let lastPct = -1;
+  await sftp.put(LOCAL_BACKUP_FILE, remoteFile, {
+    step: (transferred, _chunk, total) => {
+      const pct = Math.floor((transferred / total) * 100);
+      if (pct !== lastPct && pct % 5 === 0) {
+        const mb = (transferred / 1024 / 1024).toFixed(1);
+        const totalMb = (total / 1024 / 1024).toFixed(1);
+        console.log(`  ${pct}% — ${mb} MB / ${totalMb} MB`);
+        lastPct = pct;
+      }
+    },
+  });
 
   console.log('Upload concluído com sucesso!');
   await sftp.end();
