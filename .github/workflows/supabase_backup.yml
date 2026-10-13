@@ -104,11 +104,11 @@ jobs:
           printf '%s' "$SSH_PRIVATE_KEY" > /tmp/ssh_key
           chmod 600 /tmp/ssh_key
           REMOTE_DIR="${{ secrets.CRM_VT_SSH_PATH }}/${{ env.TODAY_DATE }}"
-          SSH_OPTS="-i /tmp/ssh_key -p ${{ secrets.SSH_PORT }} -o StrictHostKeyChecking=no -o ConnectTimeout=30 -o ServerAliveInterval=10"
+          COMMON_OPTS="-i /tmp/ssh_key -o StrictHostKeyChecking=no -o ConnectTimeout=30 -o ServerAliveInterval=10"
           REMOTE="${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}"
-          ssh $SSH_OPTS "$REMOTE" "mkdir -p $REMOTE_DIR"
+          ssh -p ${{ secrets.SSH_PORT }} $COMMON_OPTS "$REMOTE" "mkdir -p $REMOTE_DIR"
           echo "Enviando ${{ env.ARCHIVE }} ($(du -sh ${{ env.ARCHIVE }} | cut -f1)) → $REMOTE_DIR/"
-          scp $SSH_OPTS "${{ env.ARCHIVE }}" "$REMOTE:$REMOTE_DIR/"
+          scp -P ${{ secrets.SSH_PORT }} $COMMON_OPTS "${{ env.ARCHIVE }}" "$REMOTE:$REMOTE_DIR/"
           rm -f /tmp/ssh_key
           echo "Upload concluído!"
 
@@ -216,11 +216,11 @@ jobs:
           printf '%s' "$SSH_PRIVATE_KEY" > /tmp/ssh_key
           chmod 600 /tmp/ssh_key
           REMOTE_DIR="${{ secrets.FINANCEIRO_SSH_PATH }}/${{ env.TODAY_DATE }}"
-          SSH_OPTS="-i /tmp/ssh_key -p ${{ secrets.SSH_PORT }} -o StrictHostKeyChecking=no -o ConnectTimeout=30 -o ServerAliveInterval=10"
+          COMMON_OPTS="-i /tmp/ssh_key -o StrictHostKeyChecking=no -o ConnectTimeout=30 -o ServerAliveInterval=10"
           REMOTE="${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}"
-          ssh $SSH_OPTS "$REMOTE" "mkdir -p $REMOTE_DIR"
+          ssh -p ${{ secrets.SSH_PORT }} $COMMON_OPTS "$REMOTE" "mkdir -p $REMOTE_DIR"
           echo "Enviando ${{ env.ARCHIVE }} ($(du -sh ${{ env.ARCHIVE }} | cut -f1)) → $REMOTE_DIR/"
-          scp $SSH_OPTS "${{ env.ARCHIVE }}" "$REMOTE:$REMOTE_DIR/"
+          scp -P ${{ secrets.SSH_PORT }} $COMMON_OPTS "${{ env.ARCHIVE }}" "$REMOTE:$REMOTE_DIR/"
           rm -f /tmp/ssh_key
           echo "Upload concluído!"
 
