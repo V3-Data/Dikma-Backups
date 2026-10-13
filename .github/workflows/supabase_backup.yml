@@ -101,8 +101,14 @@ jobs:
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
         run: |
-          printf '%s' "$SSH_PRIVATE_KEY" | tr -d '\r' > /tmp/ssh_key
+          printf '%s\n' "$SSH_PRIVATE_KEY" | tr -d '\r' > /tmp/ssh_key
           chmod 600 /tmp/ssh_key
+          echo "=== Key debug (não sensível) ==="
+          echo "Linhas: $(wc -l < /tmp/ssh_key)"
+          echo "Bytes: $(wc -c < /tmp/ssh_key)"
+          head -1 /tmp/ssh_key
+          tail -1 /tmp/ssh_key
+          echo "================================"
           PORT=$(echo "${{ secrets.SSH_PORT }}" | tr -cd '0-9')
           PORT="${PORT:-22}"
           REMOTE_DIR="${{ secrets.CRM_VT_SSH_PATH }}/${{ env.TODAY_DATE }}"
@@ -215,8 +221,14 @@ jobs:
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
         run: |
-          printf '%s' "$SSH_PRIVATE_KEY" | tr -d '\r' > /tmp/ssh_key
+          printf '%s\n' "$SSH_PRIVATE_KEY" | tr -d '\r' > /tmp/ssh_key
           chmod 600 /tmp/ssh_key
+          echo "=== Key debug (não sensível) ==="
+          echo "Linhas: $(wc -l < /tmp/ssh_key)"
+          echo "Bytes: $(wc -c < /tmp/ssh_key)"
+          head -1 /tmp/ssh_key
+          tail -1 /tmp/ssh_key
+          echo "================================"
           PORT=$(echo "${{ secrets.SSH_PORT }}" | tr -cd '0-9')
           PORT="${PORT:-22}"
           REMOTE_DIR="${{ secrets.FINANCEIRO_SSH_PATH }}/${{ env.TODAY_DATE }}"
