@@ -79,7 +79,7 @@ jobs:
           echo "Aguardando VPN conectar (max 60s)..."
           CONNECTED=false
           for i in $(seq 1 30); do
-            if ip addr show type tun 2>/dev/null | grep -q "inet "; then
+            if sudo grep -q "Initialization Sequence Completed" /tmp/vpn.log 2>/dev/null; then
               CONNECTED=true
               break
             fi
@@ -95,7 +95,7 @@ jobs:
           if [ "$CONNECTED" != "true" ]; then
             exit 1
           fi
-          echo "VPN conectada: $(ip addr show type tun | grep 'inet ')"
+          echo "VPN conectada: $(ip addr show tun0 2>/dev/null | grep 'inet ' || echo 'DCO interface ativa')"
 
       - name: 6. Upload para VM via SSH
         env:
@@ -200,7 +200,7 @@ jobs:
           echo "Aguardando VPN conectar (max 60s)..."
           CONNECTED=false
           for i in $(seq 1 30); do
-            if ip addr show type tun 2>/dev/null | grep -q "inet "; then
+            if sudo grep -q "Initialization Sequence Completed" /tmp/vpn.log 2>/dev/null; then
               CONNECTED=true
               break
             fi
@@ -216,7 +216,7 @@ jobs:
           if [ "$CONNECTED" != "true" ]; then
             exit 1
           fi
-          echo "VPN conectada: $(ip addr show type tun | grep 'inet ')"
+          echo "VPN conectada: $(ip addr show tun0 2>/dev/null | grep 'inet ' || echo 'DCO interface ativa')"
 
       - name: 6. Upload para VM via SSH
         env:
